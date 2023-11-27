@@ -1,0 +1,49 @@
+if [ -z "$1" ]; then									# 0 arguments
+	sudo pwngrid -inbox
+else
+	if [[ "$1" =~ ^[0-9]+$ ]]; then						# message ID given
+		if [ -z "$2" ]; then							# no second argument, fetch message
+			sudo pwngrid -id "$1"
+		elif [ "$2" = "-i" ]; then						# -i, print image message with imcat
+			sudo pwngrid -inbox -id "$1" -output temp.png
+			imcat $(pwd)/temp.png
+			rm -f $(pwd)/temp.png
+		elif [ "$2" = "-e" ]; then						# -e, export message
+			if [ -z "$3" ]; then
+				echo "please specify an output file"
+			else
+				sudo pwngrid -inbox -id "$1" -output "$3"
+			fi
+		elif [ "$2" = "-d" ]; then						# -d, delete message
+			sudo pwngrid -id "$1" -delete
+		elif [ "$2" = "-u" ]; then						# -u, mark message as unread
+			sudo pwngrid -id "$1" -unread
+		else											# bad second argument
+			echo "bad operator: use -d for delete or -u for unread or -i to view image message"
+		fi
+	elif [ "$1" = "-s" ]; then							# -s for send message
+		if [ "$2" = "-f" ]; then
+			if [ "$(stat -c "%s" $3)" -le 383456 ]; then
+				sudo pwngrid -send "$4" -message @"$3"
+			else
+				echo "file too large: files are limited to 383456 bytes"
+			fi
+		else
+			sudo pwngrid -send "$3" -message "$2"
+		fi
+	elif [ "$1" = "-h" ]; then							# -h for help
+		echo    "  usage:"
+		echo    "      mail -h                         prints this help message"
+		echo    "      mail                            prints your pwnmail inbox"
+		echo    "      mail <message id>               retrieves and prints a message"
+		echo    "      mail <message id> -i            prints an image message using imcat"
+		echo    "      mail <message id> -e file.ext   exports a message to a file"
+		echo    "      mail <message id> -d            deletes a message"
+		echo -e "      mail <message id> -u            marks a message as unread\n"
+		
+		echo -e "      mail -s \"message\" <fingerprint>               sends a message"
+		echo    "      mail -s -f /path/to/file.ext <fingerprint>    sends a file â‰¤ 383456 bytes"
+	else
+		echo "expected message id as argument 1"
+	fi
+fi
